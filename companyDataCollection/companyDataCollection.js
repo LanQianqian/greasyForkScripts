@@ -4,7 +4,7 @@
 // @description   自用
 // @namespace     http://tampermonkey.net/
 // @homepageURL   https://github.com/LanQianqian/greasyForkScripts
-// @version       2.0.1
+// @version       2.0.2
 // @include        *://search.51job.com/list*
 // @include        *://www.liepin.com/zhaopin*
 // @include        *://www.qcc.com/web/search?key=*
@@ -95,12 +95,10 @@ $(function () {
             let remainProgress = companyNames.length * 2;
             let companyDatas = [];
             let detailCallback = function (response) {
-                remainProgress--;
                 let html = $.parseHTML(response, true);
                 let script = $(html).get(28).getInnerHTML();
                 let matches = script.match(/__INITIAL_STATE__=({.+});\(function/);
                 if (!matches) {
-                    remainProgress--;
                     return;
                 }
                 let result = JSON.parse(matches[1]);
@@ -111,10 +109,10 @@ $(function () {
                     scale: companyBrief.profile.Info
                 };
                 if (!companyData.phoneNumber) {
-                    remainProgress--;
                     return;
                 }
                 companyDatas.push(companyData);
+                remainProgress--;
                 if (remainProgress === 0) {
                     let companyDataStrs = _.map(companyDatas, function (v) {
                         return `${v.name}\t${v.phoneNumber}\t${v.scale}`;
@@ -133,7 +131,6 @@ $(function () {
                 }
             };
             let seachCallback = function (response) {
-                remainProgress--;
                 let html = $.parseHTML(response, true);
                 let script = $(html).get(22).getInnerHTML();
                 let matches = script.match(/__INITIAL_STATE__=({.+});\(function/);
@@ -149,6 +146,7 @@ $(function () {
                 }
                 let companyBrief = companyBriefs[0];
                 let keyNo = companyBrief.KeyNo;
+                remainProgress--;
                 getRequest(`https://www.qcc.com/firm/${keyNo}.html`, detailCallback);
             };
             _.each(companyNames, function (companyName) {
