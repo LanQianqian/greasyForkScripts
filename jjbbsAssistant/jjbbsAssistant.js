@@ -4,7 +4,7 @@
 // @description   查房(贴内发言人数统计)/白名单(高亮贴子和楼层)/屏蔽词(屏蔽贴子和楼层)/换肤/去广告/楼层记忆/标记楼主
 // @namespace     http://tampermonkey.net/
 // @homepageURL   https://github.com/LanQianqian/greasyForkScripts
-// @version       2.0.1
+// @version       2.0.2
 // @include       *://bbs.jjwxc.net*
 // @license       GPL-3.0 License
 // @require       https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js
@@ -73,7 +73,7 @@ $(function () {
                 right: 10px;
                 width: 180px;
                 display: flex;
-                flex-direction:column;
+                flex-direction: column;
                 opacity: 0.6;
                 border: 1px solid #a38a54;
                 border-radius: 3px;
@@ -659,9 +659,9 @@ $(function () {
             let peopleBriefs = [];
             let currentPageId = 0;
             let maxPageId = parseInt(PAGE_ID);
-            let callbackFn = function (data, textStatus) {
-                if (textStatus === "success") {
-                    let peopleStrs = data.match(/<font color=#999999>.*?<\/font>/g);
+            let callback = function (response, status) {
+                if (status === "success") {
+                    let peopleStrs = response.match(/<font color=#999999>.*?<\/font>/g);
                     if (peopleStrs) {
                         _.each(peopleStrs, function (s) {
                             let peopleId = s.replace('<font color=#999999>', '').replace('</font>', '');
@@ -693,14 +693,7 @@ $(function () {
                 }
             };
             for (let i = 0; i <= maxPageId; i++) {
-                $.ajax({
-                    type: 'GET',
-                    url: `https://bbs.jjwxc.net/showmsg.php?board=${BOARD_ID}&id=${POST_ID}&page=${i}`,
-                    xhrFields: {
-                        withCredentials: true
-                    },
-                    success: callbackFn
-                });
+                getRequest(`https://bbs.jjwxc.net/showmsg.php?board=${BOARD_ID}&id=${POST_ID}&page=${i}`, callback);
             }
         }, registerEvent() {
             $(document).on('click', '#count-btn', function () {
@@ -725,6 +718,14 @@ $(function () {
             }
         }
         return ('');
+    }
+
+    function getRequest(url, callback) {
+        $.ajax({
+            type: 'GET', url: url, xhrFields: {
+                withCredentials: true
+            }, success: callback
+        });
     }
 
     function addScript(js) {
