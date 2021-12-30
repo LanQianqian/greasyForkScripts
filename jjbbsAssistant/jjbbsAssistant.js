@@ -4,7 +4,7 @@
 // @description   查房(贴内发言人数统计)/白名单(高亮贴子和楼层)/屏蔽词(屏蔽贴子和楼层)/换肤/去广告/楼层记忆/标记楼主
 // @namespace     http://tampermonkey.net/
 // @homepageURL   https://github.com/LanQianqian/greasyForkScripts
-// @version       2.0.2
+// @version       2.0.3
 // @include       *://bbs.jjwxc.net*
 // @license       GPL-3.0 License
 // @require       https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js
@@ -99,19 +99,30 @@ $(function () {
                 height: 20px;
                 font-size: 10px;
             }
+            .add-spam-post-btn, .board-report-btn {
+                font-size: small;
+            }
             #white-keywords-wrapper, #spam-keywords-wrapper {
                 display: none;
             }
             #white-keywords-wicket, #spam-keywords-wicket {
                 top: 180px;
-                overflow-y: auto;
                 max-height: 600px;
+                overflow-y: auto;
             }
             #white-keywords-wicket::-webkit-scrollbar, #spam-keywords-wicket::-webkit-scrollbar {
                 display: none;
             }
-            .add-spam-post-btn, .board-report-btn {
-                font-size: small;
+            .keyword-wicket {
+                width: 180px;
+            }
+            .keyword-wicket label {
+                margin-left: 8px;
+            }
+            .keyword-operation-wicket {
+                display: inline;
+                float: right;
+                margin-right: 8px !important;
             }
             .keyword-operation {
                 font-size: small;
@@ -402,19 +413,17 @@ $(function () {
             KeyWord.addKeyword($('#add-spam-keywords-inputbox'), 'SpamKeywords');
             KeyWord.showSpamKeywordsWicket();
         }, deleteWhiteKeyword(node) {
-            let keyword = $(node).prev().prev().text();
-            $(node).parent().remove();
+            let keyword = node.rel;
             removeConfigItem('WhiteKeywords', keyword);
             removeConfigItem('WhiteKeywordsCloseInPost', keyword);
             KeyWord.showWhiteKeywordsWicket();
         }, deleteSpamKeyword(node) {
-            let keyword = $(node).prev().prev().text();
-            $(node).parent().remove();
+            let keyword = node.rel;
             removeConfigItem('SpamKeywords', keyword);
             removeConfigItem('SpamKeywordsOpenInPost', keyword);
             KeyWord.showSpamKeywordsWicket();
         }, toggleKeywordInpost(node, configName) {
-            let keyword = $(node).prev().text();
+            let keyword = node.rel;
             if (getConfigItems(configName).indexOf(keyword) < 0) {
                 addConfigItem(configName, keyword);
             } else {
@@ -474,13 +483,20 @@ $(function () {
             let whiteKeywordsCloseInPost = getConfigItems('WhiteKeywordsCloseInPost');
             let html = whiteKeywords.map(whiteKeyword => {
                 return `
-                    <div>
+                    <div class='keyword-wicket'>
                         <label>${whiteKeyword}</label>
-                        <a class='keyword-operation white-keyword-inpost-toggler' title='设置该白名单是否在贴内高亮，默认高亮'>贴内${whiteKeywordsCloseInPost.indexOf(whiteKeyword) >= 0 ? '-' : '+'}</a>
-                        <a class='keyword-operation delete-white-keyword-btn'>删除</a>
+                        <div class='keyword-operation-wicket'>
+                            <a class='keyword-operation white-keyword-inpost-toggler' rel='${whiteKeyword}' title='设置该白名单是否在贴内高亮，默认高亮'>贴内${whiteKeywordsCloseInPost.indexOf(whiteKeyword) >= 0 ? '-' : '+'}</a>
+                            <a class='keyword-operation delete-white-keyword-btn' rel='${whiteKeyword}'>删除</a>
+                        </div>
                     </div>
                 `;
-            }).join('');
+            }).join('') + `
+                    <div class='keyword-operation-wicket'>
+                        <a class='keyword-operation export-all-white-keywords-btn' title='导出结果会显示在白名单输入框中'>导出全部</a>
+                        <a class='keyword-operation delete-all-white-keywords-btn'>删除全部</a>
+                    </div>
+            `;
             $('#white-keywords-wicket').html(html);
         }, showWhiteKeywordsWicket() {
             KeyWord.renderWhiteKeywordsWicket();
@@ -507,13 +523,20 @@ $(function () {
             let spamKeywordsOpenInPost = getConfigItems('SpamKeywordsOpenInPost');
             let html = spamKeywords.map(spamKeyword => {
                 return `
-                    <div>
+                    <div class='keyword-wicket'>
                         <label>${spamKeyword}</label>
-                        <a class='keyword-operation spam-keyword-inpost-toggler' title='设置该屏蔽词是否在贴内生效，默认不屏蔽'>贴内${spamKeywordsOpenInPost.indexOf(spamKeyword) >= 0 ? '-' : '+'}</a>
-                        <a class='keyword-operation delete-spam-keyword-btn'>删除</a>
+                        <div class='keyword-operation-wicket'>
+                            <a class='keyword-operation spam-keyword-inpost-toggler' rel='${spamKeyword}' title='设置该屏蔽词是否在贴内生效，默认不屏蔽'>贴内${spamKeywordsOpenInPost.indexOf(spamKeyword) >= 0 ? '-' : '+'}</a>
+                            <a class='keyword-operation delete-spam-keyword-btn' rel='${spamKeyword}'>删除</a>
+                        </div>
                     </div>
                 `;
-            }).join('');
+            }).join('') + `
+                    <div class='keyword-operation-wicket'>
+                        <a class='keyword-operation export-all-spam-keywords-btn' title='导出结果会显示在屏蔽词输入框中'>导出全部</a>
+                        <a class='keyword-operation delete-all-spam-keywords-btn'>删除全部</a>
+                    </div>
+            `;
             $('#spam-keywords-wicket').html(html);
         }, showSpamKeywordsWicket() {
             KeyWord.renderSpamKeywordsWicket();
@@ -561,6 +584,24 @@ $(function () {
             });
             $(document).on('click', '.delete-spam-keyword-btn', function () {
                 KeyWord.deleteSpamKeyword(this);
+            });
+
+            $(document).on('click', '.export-all-white-keywords-btn', function () {
+                $('#add-white-keywords-inputbox').val(getConfig('WhiteKeywords'));
+            });
+            $(document).on('click', '.export-all-spam-keywords-btn', function () {
+                $('#add-spam-keywords-inputbox').val(getConfig('SpamKeywords'));
+            });
+
+            $(document).on('click', '.delete-all-white-keywords-btn', function () {
+                deleteConfig('WhiteKeywords');
+                deleteConfig('WhiteKeywordsCloseInPost');
+                KeyWord.showWhiteKeywordsWicket();
+            });
+            $(document).on('click', '.delete-all-spam-keywords-btn', function () {
+                deleteConfig('SpamKeywords');
+                deleteConfig('SpamKeywordsOpenInPost');
+                KeyWord.showSpamKeywordsWicket();
             });
 
             $(document).on('click', '.white-keyword-inpost-toggler', function () {
